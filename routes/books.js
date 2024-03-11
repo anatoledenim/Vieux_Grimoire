@@ -1,17 +1,18 @@
 const express = require('express')
 const router = express.Router()
 const bookCtrl = require('../controllers/books')
+const auth = require('../middleware/auth')
 
-router.get('/', bookCtrl.getAllBooks)
-router.get('//:id', bookCtrl.getOneBook)
-// router.get('/bestrating', bookCtrl.bestRatingBooks)
+router.get('/', auth, bookCtrl.getAllBooks)
+router.get('//:id', auth, bookCtrl.getOneBook)
+// router.get('/bestrating', auth, bookCtrl.bestRatingBooks)
 
-router.post('/book', bookCtrl.createBook)
+router.post('/', auth, bookCtrl.createBook)
 
-router.put('/:id', bookCtrl.modifyBook)
+router.put('/:id', auth, bookCtrl.modifyBook)
 
-router.delete('/:id', bookCtrl.deleteBook)
+router.delete('/:id', auth, bookCtrl.deleteBook)
 
-// router.post('/:id/rating', bookCtrl.postOneRating)
+// router.post('/:id/rating', auth, bookCtrl.postOneRating)
 
 module.exports = router

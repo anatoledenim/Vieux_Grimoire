@@ -1,4 +1,6 @@
 const User = require('../models/User')
+const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 
 exports.createUser = (req, res, next) => {
     bcrypt
@@ -23,7 +25,7 @@ exports.loginUser = (req, res, next) => {
             if (!user) {
                 return res
                     .status(401)
-                    .json({ message: 'Paire login/mot de passe incorrecte' })
+                    .json({ error: 'Utilisateur non trouvé !' })
             }
             bcrypt
                 .compare(req.body.password, user.password)
@@ -31,13 +33,15 @@ exports.loginUser = (req, res, next) => {
                     if (!valid) {
                         return res
                             .status(401)
-                            .json({
-                                message: 'Paire login/mot de passe incorrecte',
-                            })
+                            .json({ error: 'Mot de passe incorrect !' })
                     }
                     res.status(200).json({
                         userId: user._id,
-                        token: 'TOKEN',
+                        token: jwt.sign(
+                            { userId: user._id },
+                            'RANDOM_TOKEN_SECRET',
+                            { expiresIn: '24h' }
+                        ),
                     })
                 })
                 .catch((error) => res.status(500).json({ error }))
