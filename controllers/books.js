@@ -13,10 +13,17 @@ exports.getOneBook = (req, res, next) => {
         .catch((error) => res.status(404).json({ error }))
 }
 
+exports.bestRatingBooks = (req, res, next) => {
+    Book.find()
+        .sort({ averageRating: -1 })
+        .limit(3)
+        .then((bestBooks) => res.status(200).json(bestBooks))
+        .catch((error) => res.status(400).json({ error }))
+}
+
 exports.createBook = (req, res, next) => {
     const bookObject = JSON.parse(req.body.book)
     delete bookObject._id
-    delete bookObject.userId
     const book = new Book({
         ...bookObject,
         userId: req.auth.userId,
@@ -31,7 +38,45 @@ exports.createBook = (req, res, next) => {
         })
 }
 
-exports.bestRatingBooks = (req, res, next) => {}
+exports.postOneRating = (req, res, next) => {
+    const bookId = req.params.id
+    const { userId, rating } = req.body
+    const updatedRating = {
+        userId: req.auth.userId,
+        grade: req.body.rating,
+    }
+    if (updatedRating.grade < 0 || updatedRating.grade > 5) {
+        return res
+            .status(400)
+            .json({ message: 'La note doit être comprise entre 0 et 5' })
+    }
+    Book.findById(bookId).then((book) => {
+        Book.findOne({ _id: bookId, 'ratings.userId': userId }).then(
+            (alreadyRated) => {
+                if (alreadyRated) {
+                    throw new Error('ALREADY_RATED')
+                }
+                const grades = book.ratings.map((rating) => rating.grade)
+                const sumRatings = grades.reduce(
+                    (total, grade) => total + grade,
+                    0
+                )
+                const newTotalRating = sumRatings + rating
+                const newAverageRating = Number(
+                    (newTotalRating / (book.ratings.length + 1)).toFixed(2)
+                )
+                book.ratings.push({ userId, grade: rating })
+                book.averageRating = newAverageRating
+                return book.save().then((updatedBook) => {
+                    res.status(201).json({
+                        ...updatedBook._doc,
+                        id: updatedBook._doc._id,
+                    })
+                })
+            }
+        )
+    })
+}
 
 exports.modifyBook = (req, res, next) => {
     const bookObject = req.file
